@@ -1,0 +1,10 @@
+version: '2'
+
+services:
+    php:
+        image: bundle-rest-api-php
+        build:
+            context: ./
+            dockerfile: ./Dockerfile
+        volumes:
+            - .:/app:rw

@@ -1,0 +1,58 @@
+parameters:
+    globalgames_rest.debug_query_parameter_name: debug
+
+services:
+    globalgames_rest.query_serializer:
+        class: GlobalGames\Bundle\RestApiBundle\Request\QuerySerializer
+        arguments:
+            - "@jms_serializer.serializer"
+
+    globalgames_rest.resource_representation_param_converter:
+        class: GlobalGames\Bundle\RestApiBundle\Request\ParamConverter\ResourceRepresentationParamConverter
+        arguments:
+            - "@jms_serializer.serializer"
+        tags:
+            - { name: request.param_converter, converter: resource_representation_param_converter }
+
+    globalgames_rest.query_representation_param_converter:
+        class: GlobalGames\Bundle\RestApiBundle\Request\ParamConverter\QueryRepresentationParamConverter
+        arguments:
+            - "@globalgames_rest.query_serializer"
+        tags:
+            - { name: request.param_converter, converter: query_representation_param_converter }
+
+    globalgames_rest.presentation_response_listener:
+        class: GlobalGames\Bundle\RestApiBundle\EventListener\PresentationResponseListener
+        arguments:
+            - "@jms_serializer.serializer"
+            - false
+        tags:
+            - { name: kernel.event_listener, event: kernel.view, method: onKernelView }
+
+    globalgames_rest.composite_error_presentation_factory:
+        class: GlobalGames\Bundle\RestApiBundle\PresentationLayer\ErrorPresentation\CompositeErrorPresentationFactory
+
+    globalgames_rest.exception_listener:
+        class: GlobalGames\Bundle\RestApiBundle\EventListener\ExceptionListener
+        arguments:
+            - "@globalgames_rest.composite_error_presentation_factory"
+            - "@jms_serializer.serializer"
+            - "%globalgames_rest.debug_query_parameter_name%"
+        tags:
+            - { name: kernel.event_listener, event: kernel.exception, method: onKernelException }
+
+    globalgames_rest.validation_error_presentation_factory:
+        class: GlobalGames\Bundle\RestApiBundle\Validation\ValidationErrorPresentationFactory
+        tags:
+            - { name: globalgames_rest.error_presentation_factory }
+
+    globalgames_rest.validation_failed_exception_factory:
+        class: GlobalGames\Bundle\RestApiBundle\Validation\ValidationFailedExceptionFactory
+
+    globalgames_rest.validation_listener:
+        class: GlobalGames\Bundle\RestApiBundle\EventListener\ValidationListener
+        arguments:
+            - "@validator"
+            - "@globalgames_rest.validation_failed_exception_factory"
+        tags:
+            - { name: kernel.event_listener, event: kernel.controller, method: onKernelController, priority: -256 }
